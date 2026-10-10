@@ -1,5 +1,4 @@
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 
 local npc = script.Parent
 local humanoid = npc:WaitForChild("Humanoid")
@@ -18,10 +17,10 @@ if #patrolPoints == 0 then
 	table.insert(patrolPoints, root.Position)
 end
 
-local function findNearestPlayer(range)
+local function getNearestPlayer(range)
 	local nearestCharacter = nil
 	local nearestDistance = math.huge
-	
+
 	for _, player in ipairs(Players:GetPlayers()) do
 		local character = player.Character
 		if character and character:FindFirstChild("HumanoidRootPart") then
@@ -32,40 +31,42 @@ local function findNearestPlayer(range)
 			end
 		end
 	end
-	
+
 	return nearestCharacter
 end
 
 local function moveTo(position)
 	humanoid:MoveTo(position)
-	local reached = false
-	local start = tick()
-	while tick() - start < 2 do
+	local started = tick()
+
+	while tick() - started < 2 do
 		if (root.Position - position).Magnitude < 2 then
-			reached = true
-			break
+			return true
 		end
 		task.wait(0.05)
 	end
-	return reached
+
+	return false
 end
 
 local function patrol()
 	humanoid.WalkSpeed = 12
+
 	while humanoid.Health > 0 do
-		local target = findNearestPlayer(30)
+		local target = getNearestPlayer(30)
 		if target then
 			chaseTarget = target
 			return
 		end
-		
-		local point = patrolPoints[currentIndex]
-		moveTo(point)
-		currentIndex = currentIndex + 1
-		if currentIndex > #patrolPoints then
-			currentIndex = 1
+
+		if moveTo(patrolPoints[currentIndex]) then
+			currentIndex += 1
+			if currentIndex > #patrolPoints then
+				currentIndex = 1
+			end
 		end
-		task.wait(0.3)
+
+		task.wait(0.2)
 	end
 end
 
@@ -74,24 +75,26 @@ local function chase()
 		chaseTarget = nil
 		return
 	end
-	
+
 	humanoid.WalkSpeed = 18
 	local targetRoot = chaseTarget.HumanoidRootPart
+
 	while humanoid.Health > 0 and chaseTarget and chaseTarget.Parent do
-		local target = findNearestPlayer(35)
+		local target = getNearestPlayer(35)
 		if target then
 			chaseTarget = target
+			targetRoot = chaseTarget.HumanoidRootPart
 		end
-		if chaseTarget then
-			local targetRoot2 = chaseTarget.HumanoidRootPart
-			if targetRoot2 then
-				humanoid:MoveTo(targetRoot2.Position)
-			end
+
+		if chaseTarget and targetRoot then
+			humanoid:MoveTo(targetRoot.Position)
 		end
+
 		if (root.Position - targetRoot.Position).Magnitude > 40 then
 			chaseTarget = nil
 			return
 		end
+
 		task.wait(0.1)
 	end
 end
