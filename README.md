@@ -1,1 +1,1 @@
-so like plz hire me
+so like plz hire me and i made a combat script
